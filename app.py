@@ -53,53 +53,46 @@ with st.sidebar.expander("Advanced Settings"):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Tombol reset chat
-if st.sidebar.button("🧹 Reset Chat"):
-    st.session_state.messages = []
-    st.experimental_rerun()
-
 # Tampilkan chat history
 for msg in st.session_state.messages:
-    role = msg["role"]
-    content = msg["content"]
-    if role == "user":
-        st.markdown(f"<div style='background-color:#DCF8C6; padding:10px; border-radius:10px; margin-bottom:5px;'>**You:** {content}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div style='background-color:#F1F0F0; padding:10px; border-radius:10px; margin-bottom:5px;'>**AI:** {content}</div>", unsafe_allow_html=True)
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
 # Input user
 if prompt := st.chat_input("Ketik pesan Anda..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Tampilkan pesan user
-    st.markdown(f"<div style='background-color:#DCF8C6; padding:10px; border-radius:10px; margin-bottom:5px;'>**You:** {prompt}</div>", unsafe_allow_html=True)
-
     # Panggil API
-    with st.spinner("AI is thinking..."):
-        reply = call_openrouter(
-            model_choice,
-            st.session_state.messages,
-            temperature,
-            top_p,
-            top_k,
-            max_tokens
-        )
-        st.markdown(f"<div style='background-color:#F1F0F0; padding:10px; border-radius:10px; margin-bottom:5px;'>**AI:** {reply}</div>", unsafe_allow_html=True)
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            reply = call_openrouter(
+                model_choice,
+                st.session_state.messages,
+                temperature,
+                top_p,
+                top_k,
+                max_tokens
+            )
+            st.markdown(reply)
 
     # Simpan jawaban AI
     st.session_state.messages.append({"role": "assistant", "content": reply})
 
-# Tombol summarize di chat
+# Tombol summarize
 if st.sidebar.button("📝 Summarize Chat"):
-    if st.session_state.get("messages"):
-        with st.spinner("Summarizing..."):
-            summary_prompt = [
-                {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
-                {"role": "user", "content": f"Please summarize this conversation:\n\n{st.session_state['messages']}"}
-            ]
-            summary = call_openrouter(model_choice, summary_prompt)
-            # Simpan summary sebagai pesan AI
-            st.session_state.messages.append({"role": "assistant", "content": f"📝 Summary:\n{summary}"})
-            st.experimental_rerun()
-    else:
-        st.sidebar.warning("Chat history is empty!")
+    with st.spinner("Summarizing..."):
+        summary_prompt = [
+            {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
+            {"role": "user", "content": f"Please summarize this conversation:\n\n{st.session_state.messages}"}
+        ]
+        summary = call_openrouter(model_choice, summary_prompt)
+        
+        # Simpan ringkasan di session_state
+        st.session_state.messages.append({"role": "assistant", "content": summary})
+        
+        # Tampilkan di chat
+        with st.chat_message("assistant"):
+            st.markdown(summary)

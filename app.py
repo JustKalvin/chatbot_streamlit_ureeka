@@ -31,7 +31,7 @@ def call_openrouter(model, messages, temperature=0.7, top_p=1, top_k=40, max_tok
 # ====== STREAMLIT UI ======
 st.set_page_config(page_title="Chatbot with OpenRouter", layout="wide")
 
-st.title("🤖 Multi-Model Chatbot (Gemini & GPT via OpenRouter)")
+st.title("🤖 GemOpen")
 
 # Sidebar
 st.sidebar.header("⚙️ Settings")

@@ -39,7 +39,7 @@ st.sidebar.header("⚙️ Settings")
 # Pilihan model
 model_choice = st.sidebar.selectbox(
     "Choose Model",
-    ["google/gemini-pro", "openai/gpt-4o-mini"]
+    ["google/gemini-flash-1.5-8b", "openai/gpt-4o-mini"]
 )
 
 # Advanced settings

@@ -60,26 +60,31 @@ for msg in st.session_state.messages:
 
 # Input user
 if prompt := st.chat_input("Ketik pesan Anda..."):
+    # Tambahkan pesan user ke chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
-
-    # Panggil API
+    
+    # Tampilkan pesan user di chat
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Tambahkan st.spinner() di sini
+    with st.spinner("Thinking..."):
+        # Panggil API dan dapatkan respons
+        full_response = call_openrouter(
+            model_choice,
+            st.session_state.messages,
+            temperature,
+            top_p,
+            top_k,
+            max_tokens
+        )
+    
+    # Setelah spinner selesai, tampilkan respons
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            reply = call_openrouter(
-                model_choice,
-                st.session_state.messages,
-                temperature,
-                top_p,
-                top_k,
-                max_tokens
-            )
-            st.markdown(reply)
-
-    # Simpan jawaban AI
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.markdown(full_response)
+        
+    # Simpan respons ke session state
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 # Tombol summarize
 if st.sidebar.button("📝 Summarize Chat"):

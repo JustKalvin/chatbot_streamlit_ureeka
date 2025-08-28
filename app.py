@@ -42,6 +42,43 @@ model_choice = st.sidebar.selectbox(
     ["google/gemini-flash-1.5-8b", "openai/gpt-4o-mini"]
 )
 
+# ====== BARU: Bagian Prompt Engineering di Sidebar ======
+st.sidebar.header("🤖 Prompt Engineering")
+st.sidebar.caption("Based on the 6-Step Prompt Checklist")
+
+# Persona
+persona = st.sidebar.text_input(
+    "Persona", 
+    placeholder="e.g., a helpful AI assistant for Python programming"
+)
+
+# Context
+context = st.sidebar.text_area(
+    "Context",
+    placeholder="Provide background information or constraints..."
+)
+
+# Examples
+examples = st.sidebar.text_area(
+    "Examples",
+    placeholder="User: What is Streamlit?\nAI: Streamlit is an open-source Python library..."
+)
+
+# Format
+# Menggunakan format_ untuk menghindari konflik dengan fungsi built-in format()
+format_ = st.sidebar.selectbox(
+    "Format",
+    ["", "Markdown", "JSON", "Bullet Points", "Table"]
+)
+
+# Tone
+tone = st.sidebar.selectbox(
+    "Tone",
+    ["", "Formal", "Casual", "Humorous", "Professional", "Sarcastic"]
+)
+# ==========================================================
+
+
 # Advanced settings
 with st.sidebar.expander("Advanced Settings"):
     temperature = st.slider("Temperature", 0.0, 1.0, 0.7)
@@ -67,12 +104,38 @@ if prompt := st.chat_input("Ketik pesan Anda..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # ====== BARU: Konstruksi System Prompt dari Input Sidebar ======
+    system_prompt_parts = []
+    if persona:
+        system_prompt_parts.append(f"Embody this persona: {persona}.")
+    if context:
+        system_prompt_parts.append(f"Consider the following context: {context}.")
+    if examples:
+        system_prompt_parts.append(f"Follow these examples:\n{examples}.")
+    if format_:
+        system_prompt_parts.append(f"Format your response as {format_}.")
+    if tone:
+        system_prompt_parts.append(f"Your tone should be {tone}.")
+
+    # Gabungkan semua bagian menjadi satu system prompt
+    system_prompt_content = " ".join(system_prompt_parts)
+
+    # Buat list pesan baru untuk dikirim ke API
+    messages_for_api = []
+    if system_prompt_content:
+        messages_for_api.append({"role": "system", "content": system_prompt_content})
+    
+    # Tambahkan riwayat chat yang sudah ada
+    messages_for_api.extend(st.session_state.messages)
+    # ===============================================================
+
     # Tambahkan st.spinner() di sini
     with st.spinner("Thinking..."):
         # Panggil API dan dapatkan respons
+        # ====== MODIFIKASI: Gunakan messages_for_api ======
         full_response = call_openrouter(
             model_choice,
-            st.session_state.messages,
+            messages_for_api, # Menggunakan pesan yang sudah dimodifikasi
             temperature,
             top_p,
             top_k,
@@ -89,15 +152,19 @@ if prompt := st.chat_input("Ketik pesan Anda..."):
 # Tombol summarize
 if st.sidebar.button("📝 Summarize Chat"):
     with st.spinner("Summarizing..."):
-        summary_prompt = [
-            {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
-            {"role": "user", "content": f"Please summarize this conversation:\n\n{st.session_state.messages}"}
-        ]
-        summary = call_openrouter(model_choice, summary_prompt)
-        
-        # Simpan ringkasan di session_state
-        st.session_state.messages.append({"role": "assistant", "content": summary})
-        
-        # Tampilkan di chat
-        with st.chat_message("assistant"):
-            st.markdown(summary)
+        # Cek jika ada riwayat chat untuk diringkas
+        if len(st.session_state.messages) > 0:
+            summary_prompt = [
+                {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
+                {"role": "user", "content": f"Please summarize this conversation:\n\n{st.session_state.messages}"}
+            ]
+            summary = call_openrouter(model_choice, summary_prompt)
+            
+            # Tampilkan di chat
+            with st.chat_message("assistant"):
+                st.markdown(f"**Conversation Summary:**\n\n{summary}")
+            
+            # Simpan ringkasan ke session state
+            st.session_state.messages.append({"role": "assistant", "content": f"**Conversation Summary:**\n\n{summary}"})
+        else:
+            st.warning("There is no conversation to summarize yet.")
